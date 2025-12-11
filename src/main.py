@@ -21,30 +21,36 @@ class PredictionResponse(BaseModel):
     
 model = None
 vectorizer = None
+model_trained = False
 
 @app.on_event("startup")
 async def startup_event():
     """Inicializa el modelo al iniciar la API"""
-    global model, vectorizer
+    global model, vectorizer, model_trained
     
-    try:
+    try: 
         df = pd.read_excel('../data/BBDD.xlsx')
+        
         df = df[['sentimiento', 'review_es']].copy()
         target_map = {'positivo': 1, 'negativo': 0}
         df['target'] = df['sentimiento'].map(target_map)
         
         vectorizer = TfidfVectorizer(max_features=2000)
-        X = vectorizer.fit_transform(df['review_es'])
-        Y = df['target']
+        X = vectorizer.fit_transform(df['review_es'].astype(str))
         
         model = LogisticRegression(max_iter=2000)
-        model.fit(X, Y)
+        model.fit(X, df['target'])
         
-        return "Modelo entrenado y listo"
+        train_accuracy = model.score(X, df['target'])
+        print(f"✅ Modelo entrenado. Accuracy en entrenamiento: {train_accuracy:.2%}")
+        
+        model_trained = True
+        print("🎉 ¡Modelo listo para hacer predicciones!")
         
     except Exception as e:
         vectorizer = TfidfVectorizer(max_features=2000)
         model = LogisticRegression(max_iter=2000)
+        print('Error')
         return f"Error al cargar/entrenar modelo: {e}"
         
 @app.get('/home')
