@@ -1,9 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-
+from fastapi import FastAPI
+from api.v1.router import api_router
+from services.model_service import model_service
 
 app = FastAPI(
     title="API de Análisis de Sentimientos",
@@ -11,75 +8,32 @@ app = FastAPI(
     version="1.0.0"
 )
 
-class ReviewRequest(BaseModel):
-    text: str
-
-class PredictionResponse(BaseModel):
-    sentiment: str
-    probability_positive: float
-    probability_negative: float
-    
-model = None
-vectorizer = None
-model_trained = False
-
 @app.on_event("startup")
 async def startup_event():
     """Inicializa el modelo al iniciar la API"""
-    global model, vectorizer, model_trained
+    print("🚀 Inicializando modelo de análisis de sentimientos...")
     
-    try: 
-        df = pd.read_excel('../data/BBDD.xlsx')
-        
-        df = df[['sentimiento', 'review_es']].copy()
-        target_map = {'positivo': 1, 'negativo': 0}
-        df['target'] = df['sentimiento'].map(target_map)
-        
-        vectorizer = TfidfVectorizer(max_features=2000)
-        X = vectorizer.fit_transform(df['review_es'].astype(str))
-        
-        model = LogisticRegression(max_iter=2000)
-        model.fit(X, df['target'])
-        
-        train_accuracy = model.score(X, df['target'])
-        print(f"✅ Modelo entrenado. Accuracy en entrenamiento: {train_accuracy:.2%}")
-        
-        model_trained = True
-        print("🎉 ¡Modelo listo para hacer predicciones!")
-        
-    except Exception as e:
-        vectorizer = TfidfVectorizer(max_features=2000)
-        model = LogisticRegression(max_iter=2000)
-        print('Error')
-        return f"Error al cargar/entrenar modelo: {e}"
-        
-@app.get('/home')
+    success, message = model_service.train_model('../data/BBDD.xlsx')
+    
+    if success:
+        print("🎉 Modelo inicializado correctamente")
+    else:
+        print(f"❌ Error al inicializar modelo: {message}")
+
+app.include_router(api_router, prefix="/api/v1")
+
+@app.get("/")
 def read_root():
-    return {"message": "Bienvenido a la API para analizar sentimientos"}
-
-@app.get("/health")
-def health_check():
-    """Endpoint para verificar estado de la API"""
-    return {"status": "healthy", "model_loaded": model is not None}
-
-@app.post('/predict', response_model=PredictionResponse)
-def predict_sentiment(request: ReviewRequest):
-    if model is None or vectorizer is None:
-        raise HTTPException(status_code=503, detail="Modelo no cargado")
-    
-    try:
-        text_vetorized = vectorizer.transform([request.text])
-        
-        prediction = model.predict(text_vetorized)[0]
-        probabilities = model.predict_proba(text_vetorized)[0]
-        
-        sentiment = "positivo" if prediction == 1 else "negativo"
-
-        return PredictionResponse(
-            sentiment=sentiment,
-            probability_positive=float(probabilities[1]),
-            probability_negative=float(probabilities[0])
-        )
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en predicción: {str(e)}")
+    """Página principal de la API"""
+    return {
+        "message": "Bienvenido a la API de Análisis de Sentimientos",
+        "documentation": "/docs",
+        "api_version": "v1",
+        "endpoints": {
+            "home": "/",
+            "health": "/api/v1/health/health",
+            "model_status": "/api/v1/health/model-status",
+            "predict": "/api/v1/predictions/predict",
+            "batch_predict": "/api/v1/batch/batch-predict"
+        }
+    }
