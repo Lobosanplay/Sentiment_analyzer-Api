@@ -2,7 +2,8 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from io import BytesIO
-
+from fastapi.responses import StreamingResponse
+from fastapi import HTTPException
 
 class ModelService:
     def __init__(self):
@@ -113,7 +114,6 @@ class ModelService:
                 if text_column not in df.columns:
                     return None, f"La columna '{text_column}' no existe en el archivo"
                 selected_column = text_column
-                print(f"Usando columna especificada por usuario: {selected_column}")
             else:
                 possible_names = ['text', 'review', 'comentario', 'opinion', 'mensaje', 
                                 'content', 'message', 'feedback', 'review_es', 'comentarios']
@@ -156,7 +156,7 @@ class ModelService:
                 }, None
 
             texts = df[selected_column].tolist()
-            predictions, error =  self.predict_batch(texts)
+            predictions, error = self.predict_batch(texts)
 
             if error:
                 return None, error
@@ -180,7 +180,34 @@ class ModelService:
             
         except Exception as e:
             return None, f"Error al procesar archivo: {str(e)}"
-
+        
+    def create_exel(self, result):
+        try:
+            df = pd.DataFrame(result["results"])
             
+            df['prediction_index'] = range(len(df))
+            df['text_length'] = df['text'].str.len()
+            df['confidence'] = df[['probability_positive', 'probability_negative']].max(axis=1)
+            
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Resultados')
+
+                summary_df = pd.DataFrame([result["summary"]])
+                summary_df.to_excel(writer, index=False, sheet_name='Resumen')
+            
+            output.seek(0)
+
+            return StreamingResponse(
+                output,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={
+                    "Content-Disposition": "attachment; filename=resultados_analisis.xlsx"
+                }
+            )
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
 
 model_service = ModelService()

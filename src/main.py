@@ -34,6 +34,7 @@ def read_root():
             "health": "/api/v1/health/health",
             "model_status": "/api/v1/health/model-status",
             "predict": "/api/v1/predictions/predict",
-            "batch_predict": "/api/v1/batch/batch-predict"
+            "batch_predict": "/api/v1/batch/batch-predict",
+            "filea_prediction": "/api/v1/file/fil-prediction"
         }
     }
