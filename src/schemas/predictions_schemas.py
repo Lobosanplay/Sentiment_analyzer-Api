@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Any
 
 class ReviewRequest(BaseModel):
     text: str
@@ -17,3 +17,24 @@ class BatchPredictionItem(BaseModel):
 
 class BatchPredictionResponse(BaseModel):
     predictions: List[BatchPredictionItem]
+    
+class FilePredictionItem(BaseModel):
+    text: str
+    sentiment: str
+    probability_positive: float
+    probability_negative: float
+
+class FilePredictionResponse(BaseModel):
+    predictions: List[FilePredictionItem]
+
+class AnalysisSummary(BaseModel):
+    total_reviews: int
+    positivos: int
+    negativos: int
+    porcentaje_positivos: float
+    porcentaje_negativos: float
+
+class FileAnalysisResponse(BaseModel):
+    results: List[FilePredictionItem]
+    summary: AnalysisSummary
+    dataframe: List[Dict[str, Any]]
