@@ -1,6 +1,6 @@
 # Sentiment_analyzer-Api
 ## 📋 Descripción del Proyecto
-Este proyecto es una API REST desarrollada con FastAPI que proporciona análisis de sentimientos (positivo/negativo) para textos en español. El sistema utiliza un modelo de Machine Learning basado en Regresión Logística con vectorización TF-IDF para clasificar textos y está diseñado para ser escalable, fácil de usar y adecuado tanto para análisis individuales como por lotes.
+Este proyecto es una API REST desarrollada con FastAPI que proporciona análisis de sentimientos (positivo/negativo/neutral) para textos en español. El sistema utiliza un modelo de Machine Learning basado en Regresión Logística con vectorización TF-IDF para clasificar textos y está diseñado para ser escalable, fácil de usar y adecuado tanto para análisis individuales como por lotes.
 
 ## 🎯 Características Principales
 - ✅ Análisis en tiempo real de textos individuales
@@ -15,8 +15,6 @@ Este proyecto es una API REST desarrollada con FastAPI que proporciona análisis
 ## 🏗️ Arquitectura del Proyecto
 ```text
 📦 proyecto-sentimientos/
-├── 📁 data/                    # Datos de entrenamiento
-│   └── BBDD.xlsx              # Dataset de entrenamiento
 ├── 📁 src/                     # Código fuente
 │   ├── 📁 api/
 │   │   └── 📁 v1/
@@ -37,7 +35,7 @@ Este proyecto es una API REST desarrollada con FastAPI que proporciona análisis
 1. Clonar el repositorio
 ```bash
 git clone [url-del-repositorio]
-cd proyecto-sentimientos
+cd Sentiment_analyzer-Api
 ```
 
 ## 2. Crear entorno virtual
@@ -49,7 +47,7 @@ venv\Scripts\activate     # Windows
 ```
 ## 3. Instalar dependencias
 ```bash
-pip install fastapi uvicorn pandas scikit-learn openpyxl python-multipart
+pip install fastapi uvicorn pandas scikit-learn openpyxl python-multipart huggingface_hub fsspec
 # o
 pip install requirements.txt
 ```
@@ -60,18 +58,8 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## 📚 Entrenamiento del Modelo
-El modelo se entrena automáticamente al iniciar la aplicación con los datos en data/BBDD.xlsx. Este archivo debe contener:
+El modelo se entrena automáticamente al iniciar la aplicación con los datos en [multiclass-sentiment-analysis-dataset](https://huggingface.co/datasets/Sp1786/multiclass-sentiment-analysis-dataset).
 
-- review_es: Textos en español para analizar
-- sentimiento: Etiquetas ("positivo" o "negativo")
-
-### Formato del dataset:
-```excel
-| review_es                              | sentimiento |
-|----------------------------------------|-------------|
-| "Excelente servicio, muy recomendable" | positivo    |
-| "No cumple con las expectativas"       | negativo    |
-```
 
 ## 🌐 API Endpoints
 ### 1. 🏥 Health Check
@@ -107,6 +95,7 @@ Response:
 ```json
 {
   "sentiment": "positivo",
+  "probability_neutral": 0.16,
   "probability_positive": 0.92,
   "probability_negative": 0.08
 }
@@ -135,14 +124,23 @@ Response:
     {
       "text": "Me encantó el servicio",
       "sentiment": "positivo",
-      "probability_positive": 0.95,
-      "probability_negative": 0.05
+      "probability_positive": 0.92,
+      "probability_negative": 0.03,
+      "probability_neutral": 0.05
     },
     {
       "text": "No volvería a comprar",
       "sentiment": "negativo",
-      "probability_positive": 0.15,
-      "probability_negative": 0.85
+      "probability_positive": 0.10,
+      "probability_negative": 0.85,
+      "probability_neutral": 0.05
+    },
+    {
+      "text": "El producto llegó en la fecha acordada",
+      "sentiment": "neutral",
+      "probability_positive": 0.25,
+      "probability_negative": 0.20,
+      "probability_neutral": 0.55
     }
   ]
 }
@@ -171,17 +169,17 @@ Devuelve un archivo Excel con:
 Ejemplo de resumen:
 
 ```excel
-| total_reviews | positivos | negativos | porcentaje_positivos | porcentaje_negativos |
-|---------------|-----------|-----------|---------------------|----------------------|
-| 150           | 112       | 38        | 74.67%              | 25.33%               |
+| total_reviews | positivos | negativos | porcentaje_positivos | porcentaje_negativos | porcentaje_neutrales |
+|---------------|-----------|-----------|---------------------|----------------------|----------------------|
+| 150           | 112       | 38        | 74.67%              | 25.33%               | 25.33%               |
 ```
 
 ## 🛠️ Configuración del Modelo
 ### Parámetros del Modelo
-- Vectorizador: TF-IDF con 2000 características máximas
+- Vectorizador: TF-IDF con 30000 características máximas
 - Algoritmo: Regresión Logística
-- Iteraciones: 2000 máximas
-- Precisión típica: 85-95% (dependiendo del dataset)
+- Iteraciones: 4000 máximas
+- Precisión típica: 80-85% (dependiendo del dataset)
 
 ## 🔍 Detección Automática de Columnas
 Al subir archivos, el sistema detecta automáticamente columnas con nombres como:
@@ -199,21 +197,14 @@ Para análisis de archivos, se incluyen:
 1. Total de reseñas: Número total de textos analizados
 2. Reseñas positivas: Conteo y porcentaje
 3. Reseñas negativas: Conteo y porcentaje
-4. Longitud promedio: Caracteres por texto
-5. Confianza promedio: Certeza de las predicciones
-
-## 🔄 Escalabilidad y Mejoras
-### Posibles Mejoras
-1. Modelos más avanzados: BERT, transformers para español
-2. Caché: Implementar Redis para respuestas frecuentes
-3. Autenticación: JWT para seguridad de endpoints
-4. Rate limiting: Limitar peticiones por usuario
-5. Base de datos: Almacenar historial de análisis
+4. Reseñas neutrales: Conteo y porcentaje
+5. Longitud promedio: Caracteres por texto
+6. Confianza promedio: Certeza de las predicciones
 
 ## 🧪 Testing
 ### Endpoints a probar
 - Health Check: Verifica que el servicio esté activo
-- Predicción simple: Texto corto en español
+- Predicción simple: Texto corto en ingles
 - Batch processing: Array de 5-10 textos
 - Archivos: Subir Excel con 100+ registros
 - Errores: Textos vacíos, archivos corruptos
