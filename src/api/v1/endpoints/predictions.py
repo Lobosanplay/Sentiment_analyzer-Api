@@ -20,6 +20,7 @@ def predict_sentiment(request: ReviewRequest):
     
     return PredictionResponse(
         sentiment=result["sentiment"],
+        probability_neutral=result["probability_neutral"],
         probability_positive=result["probability_positive"],
         probability_negative=result["probability_negative"]
     )

@@ -19,11 +19,11 @@ def batch_predict(texts: List[str]):
     if error:
         raise HTTPException(status_code=500, detail=error)
     
-    # Convertir resultados a objetos Pydantic
     predictions = [
         BatchPredictionItem(
             text=item["text"],
             sentiment=item["sentiment"],
+            probability_neutral=item["probability_neutral"],
             probability_positive=item["probability_positive"],
             probability_negative=item["probability_negative"]
         )

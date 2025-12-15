@@ -11,22 +11,18 @@ class ModelService:
         self.vectorizer = None
         self.model_trained = False
     
-    def train_model(self, excel_path: str = '../data/BBDD.xlsx'):
+    def train_model(self):
         """Entrena el modelo con datos del Excel"""
         try:
-            df = pd.read_excel(excel_path)
+            df = pd.read_csv('hf://datasets/Sp1786/multiclass-sentiment-analysis-dataset/train_df.csv')
             
-            df = df[['sentimiento', 'review_es']].copy()
-            target_map = {'positivo': 1, 'negativo': 0}
-            df['target'] = df['sentimiento'].map(target_map)
+            self.vectorizer = TfidfVectorizer(max_features=30000)
+            X = self.vectorizer.fit_transform(df['text'].astype(str))
             
-            self.vectorizer = TfidfVectorizer(max_features=2000)
-            X = self.vectorizer.fit_transform(df['review_es'].astype(str))
+            self.model = LogisticRegression(max_iter=4000)
+            self.model.fit(X, df['label'])
             
-            self.model = LogisticRegression(max_iter=2000)
-            self.model.fit(X, df['target'])
-            
-            train_accuracy = self.model.score(X, df['target'])
+            train_accuracy = self.model.score(X, df['label'])
             print(f"Modelo entrenado. Accuracy: {train_accuracy:.2%}")
             
             self.model_trained = True
@@ -45,12 +41,13 @@ class ModelService:
         prediction = self.model.predict(text_vectorized)[0]
         probabilities = self.model.predict_proba(text_vectorized)[0]
         
-        sentiment = "positivo" if prediction == 1 else "negativo"
+        sentiment = "positive" if prediction == 2 else 'neutral' if prediction == 1 else 'negative'
         
         return {
             "sentiment": sentiment,
-            "probability_positive": float(probabilities[1]),
-            "probability_negative": float(probabilities[0])
+            "probability_neutral": float(probabilities[1]),
+            "probability_positive": float(probabilities[2]),
+            "probability_negative": float(probabilities[0]),
         }, None
     
     def predict_batch(self, texts: list[str]):
@@ -78,11 +75,12 @@ class ModelService:
             
             results = []
             for i, text in enumerate(texts_clean):
-                sentiment = "positivo" if predictions[i] == 1 else "negativo"
+                sentiment = "positive" if predictions[i] == 2 else 'neutral' if predictions[i] == 1 else 'negative'
                 results.append({
                     "text": text,
                     "sentiment": sentiment,
-                    "probability_positive": float(probabilities[i][1]),
+                    "probability_neutral": float(probabilities[i][1]),
+                    "probability_positive": float(probabilities[i][2]),
                     "probability_negative": float(probabilities[i][0])
                 })
             
@@ -148,10 +146,12 @@ class ModelService:
                     "results": [],
                     "summary": {
                         "total_reviews": 0,
+                        "neutral": 0,
                         "positivos": 0,
                         "negativos": 0,
-                        "porcentaje_positivos": 0,
-                        "porcentaje_negativos": 0
+                        "neutral_percentage": 0,
+                        "positive_percentage": 0,
+                        "negative_percentage": 0
                     }
                 }, None
 
@@ -162,15 +162,18 @@ class ModelService:
                 return None, error
 
             total_reviews = len(predictions)
-            positive_count = sum(1 for p in predictions if p['sentiment'] == 'positivo')
-            negative_count = total_reviews - positive_count
+            positive_count = sum(1 for p in predictions if p['sentiment'] == 'positive')
+            negative_count = sum(1 for p in predictions if p['sentiment'] == 'negative')
+            neutral_count = sum(1 for p in predictions if p['sentiment'] == 'neutral')
 
             summary = {
                 "total_reviews": total_reviews,
-                "positivos": positive_count,
-                "negativos": negative_count,
-                "porcentaje_positivos": (positive_count / total_reviews) * 100 if total_reviews > 0 else 0,
-                "porcentaje_negativos": (negative_count / total_reviews) * 100 if total_reviews > 0 else 0
+                "neutrals": neutral_count,
+                "positives": positive_count,
+                "negatives": negative_count,
+                "neutral_percentage": (neutral_count / total_reviews) * 100 if total_reviews > 0 else 0,
+                "positive_percentage": (positive_count / total_reviews) * 100 if total_reviews > 0 else 0,
+                "negative_percentage": (negative_count / total_reviews) * 100 if total_reviews > 0 else 0
             }
             
             return {
@@ -187,7 +190,7 @@ class ModelService:
             
             df['prediction_index'] = range(len(df))
             df['text_length'] = df['text'].str.len()
-            df['confidence'] = df[['probability_positive', 'probability_negative']].max(axis=1)
+            df['confidence'] = df[['probability_positive', 'probability_negative', 'probability_neutral']].max(axis=1)
             
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:

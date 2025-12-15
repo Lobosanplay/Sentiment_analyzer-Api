@@ -13,7 +13,7 @@ async def startup_event():
     """Inicializa el modelo al iniciar la API"""
     print("🚀 Inicializando modelo de análisis de sentimientos...")
     
-    success, message = model_service.train_model('../data/BBDD.xlsx')
+    success, message = model_service.train_model()
     
     if success:
         print("🎉 Modelo inicializado correctamente")
