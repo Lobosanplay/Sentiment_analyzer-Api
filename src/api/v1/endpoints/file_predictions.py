@@ -17,12 +17,6 @@ async def file_prediction(
         text_column: Nombre de la columna que contiene el texto (opcional)
     """
     try:
-        if not model_service.model_trained:
-            raise HTTPException(
-                status_code=503,
-                detail="Modelo no disponible. El servicio no está listo."
-            )
-
         contents = await file.read()
         
         result, error = model_service.predict_from_file(contents, file.filename, text_column)
@@ -30,7 +24,7 @@ async def file_prediction(
         if error:
             raise HTTPException(status_code=500, detail=error)
         
-        exel = model_service.create_exel(result)
+        exel = model_service.create_excel(result)
 
         return exel
 

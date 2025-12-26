@@ -7,12 +7,6 @@ router = APIRouter(tags=["predictions"])
 @router.post("/predict", response_model=PredictionResponse)
 def predict_sentiment(request: ReviewRequest):
     """Predice el sentimiento de un texto en español"""
-    if not model_service.model_trained:
-        raise HTTPException(
-            status_code=503,
-            detail="Modelo no disponible. El servicio no está listo."
-        )
-    
     result, error = model_service.predict_single(request.text)
     
     if error:

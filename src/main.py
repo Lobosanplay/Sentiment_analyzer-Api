@@ -11,14 +11,7 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """Inicializa el modelo al iniciar la API"""
-    print("🚀 Inicializando modelo de análisis de sentimientos...")
-    
-    success, message = model_service.train_model()
-    
-    if success:
-        print("🎉 Modelo inicializado correctamente")
-    else:
-        print(f"❌ Error al inicializar modelo: {message}")
+    await model_service.initialize()
 
 app.include_router(api_router, prefix="/api/v1")
 
