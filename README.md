@@ -20,6 +20,7 @@ Este proyecto es una API REST desarrollada con FastAPI que proporciona análisis
 │   │   └── 📁 v1/
 │   │       ├── 📁 endpoints/   # Endpoints de la API
 │   │       └── router.py       # Enrutador principal
+│   ├── 📁 models/             # Guardar el modelo
 │   ├── 📁 schemas/            # Esquemas Pydantic
 │   ├── 📁 services/           # Lógica de negocio
 │   └── main.py                # Punto de entrada

@@ -8,12 +8,6 @@ router = APIRouter(tags=["batch predictions"])
 @router.post("/batch-predict", response_model=BatchPredictionResponse)
 def batch_predict(texts: List[str]):
     """Predice sentimientos para múltiples textos"""
-    if not model_service.model_trained:
-        raise HTTPException(
-            status_code=503,
-            detail="Modelo no disponible. El servicio no está listo."
-        )
-    
     results, error = model_service.predict_batch(texts)
     
     if error:
